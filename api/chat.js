@@ -36,7 +36,7 @@ export async function onRequest(context) {
         userContent.push({ type: 'text', text: message });
 
         const payload = {
-            model: "lgai/exaone-3-5-32b-instruct",
+            model: "meta-llama/Llama-Vision-Free",
             messages: [
                 {
                     role: "system",
