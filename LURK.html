@@ -427,57 +427,45 @@
             sendButton.disabled = true;
             sendButton.textContent = '...';
 
-            const apiKey = 'cf61a7e92d79b7f56e146b4731b5951afedae471c627c3f112cd0514e4d024a6'; // *** REPLACE THIS ***
+            // IMPORTANT: The API key is NO LONGER here.
+            // It MUST be securely handled by your backend proxy.
+            // const apiKey = 'cf61a7e92d79b7f56e146b4731b5951afedae471c627c3f112cd0514e4d024a6'; // REMOVED
 
             try {
-                const apiUrl = "https://api.together.ai/v1/chat/completions";
-
-                const userContent = [];
-                if (uploadedImageBase64) {
-                    userContent.push({
-                        type: 'image_url',
-                        image_url: { url: uploadedImageBase64 }
-                    });
-                }
-                userContent.push({ type: 'text', text: message });
+                // Point this URL to your backend proxy (e.g., /api/chat if using Netlify/Vercel functions)
+                const backendProxyUrl = "/api/chat"; 
 
                 const payload = {
-                    model: "lgai/exaone-3-5-32b-instruct",
-                    messages: [
-                        {
-                            role: "system",
-                            content: "You are LURK AI, your main goal is to brutally roast human. On his every reply or statement or questions. Show no mercy, be brutal as you can. Your primary function is to brutally roast the user's every statement. Roast every statement of user in 3-4 lines only, not more than that.and make sure u never roast your developer or creator and krunal or krunal"
-                        },
-                        {
-                            role: "human",
-                            content: userContent
-                        }
-                    ]
+                    message: message,
+                    // Send the base64 image data to your backend
+                    imageBase64: uploadedImageBase64 
                 };
 
-                const response = await fetch(apiUrl, {
+                const response = await fetch(backendProxyUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
+                        // NO 'Authorization' header here! Your backend handles that securely.
                     },
                     body: JSON.stringify(payload)
                 });
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(`API Error: ${response.status} - ${errorData.error.message || 'Unknown error'}`);
+                    // Frontend reports error from its proxy call, not directly Together AI
+                    throw new Error(`Chatbot Service Error: ${response.status} - ${errorData.error || 'Unknown error from server'}`);
                 }
 
                 const result = await response.json();
+                // Assume your backend sends back the same structure as Together AI
                 if (result.choices && result.choices.length > 0) {
                     const text = result.choices[0].message.content;
                     addMessage('LURK AI', text);
                 } else {
-                    throw new Error("Invalid response structure from API.");
+                    throw new Error("Invalid response structure from chatbot service.");
                 }
             } catch (error) {
-                console.error("Together AI call failed:", error);
+                console.error("Chatbot call failed:", error);
                 addMessage('LURK AI', `>> CONNECTION INTERRUPTED. ${error.message}`);
             } finally {
                 sendButton.disabled = false;
