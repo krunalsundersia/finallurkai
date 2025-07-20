@@ -38,7 +38,7 @@ export default async function handler(req, res) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${TOGETHER_AI_API_KEY}`
+                'Authorization': `Bearer ${1f9cb5c3680c8f5cb0c24ef47eec2ef7b56c685d95f3c287f0ccb2cfcfaf67de}`
             },
             body: JSON.stringify(payload)
         });
