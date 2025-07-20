@@ -7,9 +7,9 @@ export default async function handler(req, res) {
     }
 
     // Get the API key securely from an environment variable
-    const TOGETHER_AI_API_KEY = process.env.1f9cb5c3680c8f5cb0c24ef47eec2ef7b56c685d95f3c287f0ccb2cfcfaf67de; 
+    const 1f9cb5c3680c8f5cb0c24ef47eec2ef7b56c685d95f3c287f0ccb2cfcfaf67de = process.env.1f9cb5c3680c8f5cb0c24ef47eec2ef7b56c685d95f3c287f0ccb2cfcfaf67de; 
 
-    if (!TOGETHER_AI_API_KEY) {
+    if (!1f9cb5c3680c8f5cb0c24ef47eec2ef7b56c685d95f3c287f0ccb2cfcfaf67de) {
         console.error("1f9cb5c3680c8f5cb0c24ef47eec2ef7b56c685d95f3c287f0ccb2cfcfaf67de environment variable is not set.");
         return res.status(500).json({ error: 'Server configuration error: API key missing.' });
     }
