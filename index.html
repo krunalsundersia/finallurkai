@@ -211,351 +211,342 @@
         </div>
     </div>
 
-    <script type="module">
-        // --- CORE MONITOR 3D SCENE ---
-        let chipScene, chipCamera, chipRenderer, chip, fan;
+            <script type="module">
+    // --- CORE MONITOR 3D SCENE ---
+    let chipScene, chipCamera, chipRenderer, chip, fan;
 
-        function initChip3D() {
-            const chipContainer = document.getElementById('chip-container');
-            // Only initialize 3D if the container is visible (e.g., not hidden by CSS for mobile)
-            if (!chipContainer || getComputedStyle(chipContainer).display === 'none') return;
+    function initChip3D() {
+        const chipContainer = document.getElementById('chip-container');
+        if (!chipContainer || getComputedStyle(chipContainer).display === 'none') return;
 
-            chipScene = new THREE.Scene();
-            chipCamera = new THREE.PerspectiveCamera(75, chipContainer.clientWidth / chipContainer.clientHeight, 0.1, 1000);
-            chipCamera.position.z = 5;
-            chipRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            chipRenderer.setSize(chipContainer.clientWidth, chipContainer.clientHeight);
-            chipContainer.appendChild(chipRenderer.domElement);
+        chipScene = new THREE.Scene();
+        chipCamera = new THREE.PerspectiveCamera(75, chipContainer.clientWidth / chipContainer.clientHeight, 0.1, 1000);
+        chipCamera.position.z = 5;
+        chipRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        chipRenderer.setSize(chipContainer.clientWidth, chipContainer.clientHeight);
+        chipContainer.appendChild(chipRenderer.domElement);
 
-            const ambientLight = new THREE.AmbientLight(0x00ff41, 0.5);
-            chipScene.add(ambientLight);
-            const pointLight = new THREE.PointLight(0x00ff41, 1, 100);
-            pointLight.position.set(0, 2, 5);
-            chipScene.add(pointLight);
+        const ambientLight = new THREE.AmbientLight(0x00ff41, 0.5);
+        chipScene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0x00ff41, 1, 100);
+        pointLight.position.set(0, 2, 5);
+        chipScene.add(pointLight);
 
-            const chipGroup = new THREE.Group();
-            const chipMaterial = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.3, metalness: 0.8 });
-            const chipGeo = new THREE.BoxGeometry(2, 0.2, 2);
-            chip = new THREE.Mesh(chipGeo, chipMaterial);
-            chipGroup.add(chip);
+        const chipGroup = new THREE.Group();
+        const chipMaterial = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.3, metalness: 0.8 });
+        const chipGeo = new THREE.BoxGeometry(2, 0.2, 2);
+        chip = new THREE.Mesh(chipGeo, chipMaterial);
+        chipGroup.add(chip);
 
-            fan = new THREE.Group();
-            const fanBaseGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32);
-            const fanBaseMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
-            const fanBase = new THREE.Mesh(fanBaseGeo, fanBaseMat);
-            fanBase.position.y = 0.2;
-            fan.add(fanBase);
+        fan = new THREE.Group();
+        const fanBaseGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32);
+        const fanBaseMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+        const fanBase = new THREE.Mesh(fanBaseGeo, fanBaseMat);
+        fanBase.position.y = 0.2;
+        fan.add(fanBase);
 
-            const bladeGeo = new THREE.BoxGeometry(0.1, 0.05, 0.8);
-            const bladeMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
-            for (let i = 0; i < 4; i++) {
-                const blade = new THREE.Mesh(bladeGeo, bladeMat);
-                blade.position.y = 0.3;
-                blade.rotation.y = (Math.PI / 2) * i;
-                blade.position.z = Math.sin((Math.PI / 2) * i) * 0.2;
-                blade.position.x = Math.cos((Math.PI / 2) * i) * 0.2;
-                fan.add(blade);
-            }
-            chipGroup.add(fan);
-            chipScene.add(chipGroup);
-
-            function animateChip() {
-                // Check if chipRenderer exists before animating, in case it was not initialized
-                if (!chipRenderer) return;
-                requestAnimationFrame(animateChip);
-                chipGroup.rotation.y += 0.005;
-                chipGroup.rotation.x += 0.001;
-                fan.rotation.y += 0.5;
-                chipRenderer.render(chipScene, chipCamera);
-            }
-            animateChip();
-
-            window.addEventListener('resize', () => {
-                if (!chipContainer || !chipCamera || !chipRenderer) return;
-                const width = chipContainer.clientWidth;
-                const height = chipContainer.clientHeight;
-                if (width === 0 || height === 0) return; // Avoid division by zero
-                chipCamera.aspect = width / height;
-                chipCamera.updateProjectionMatrix();
-                chipRenderer.setSize(width, height);
-            });
+        const bladeGeo = new THREE.BoxGeometry(0.1, 0.05, 0.8);
+        const bladeMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
+        for (let i = 0; i < 4; i++) {
+            const blade = new THREE.Mesh(bladeGeo, bladeMat);
+            blade.position.y = 0.3;
+            blade.rotation.y = (Math.PI / 2) * i;
+            blade.position.z = Math.sin((Math.PI / 2) * i) * 0.2;
+            blade.position.x = Math.cos((Math.PI / 2) * i) * 0.2;
+            fan.add(blade);
         }
+        chipGroup.add(fan);
+        chipScene.add(chipGroup);
 
-        // --- BACKGROUND 3D SCENE ---
-        let bgScene, bgCamera, bgRenderer, codeSprites = [];
-        const codeSnippets = [
-            'const x = () => {}', 'import { a } from "b"', 'let i = 0;', 'for (let i=0; i<100; i++)',
-            'function exploit() { ... }', 'if (err) throw err;', 'res.status(200).send()', 'await fetchData();',
-        ];
-
-        function createTextTexture(text) {
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            const fontSize = 48;
-            canvas.width = 512;
-            canvas.height = 128;
-            context.font = `${fontSize}px 'Fira Code'`;
-            context.fillStyle = '#00ff41';
-            context.fillText(text, 10, fontSize);
-            return new THREE.CanvasTexture(canvas);
+        function animateChip() {
+            if (!chipRenderer) return;
+            requestAnimationFrame(animateChip);
+            chipGroup.rotation.y += 0.005;
+            chipGroup.rotation.x += 0.001;
+            fan.rotation.y += 0.5;
+            chipRenderer.render(chipScene, chipCamera);
         }
+        animateChip();
 
-        function initBackground3D() {
-            const bgCanvas = document.getElementById('bg-canvas');
-            // Only initialize 3D if the canvas is visible
-            if (!bgCanvas || getComputedStyle(bgCanvas).display === 'none') return;
-
-            bgScene = new THREE.Scene();
-            bgCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            bgCamera.position.z = 10;
-            bgRenderer = new THREE.WebGLRenderer({ canvas: bgCanvas, antialias: true });
-            bgRenderer.setSize(window.innerWidth, window.innerHeight);
-
-            // Reduce number of sprites for mobile to improve performance
-            const numSprites = window.innerWidth < 768 ? 20 : 50; // Fewer sprites on smaller screens
-            for (let i = 0; i < numSprites; i++) {
-                const text = codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
-                const texture = createTextTexture(text);
-                const material = new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 0.7 });
-                const sprite = new THREE.Sprite(material);
-                sprite.position.set((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 50);
-                sprite.scale.set(4, 1, 1);
-                codeSprites.push(sprite);
-                bgScene.add(sprite);
-            }
-
-            function animateBackground() {
-                if (!bgRenderer) return; // Check if renderer exists
-                requestAnimationFrame(animateBackground);
-                codeSprites.forEach(sprite => {
-                    sprite.position.z += 0.1;
-                    if (sprite.position.z > 20) {
-                        sprite.position.z = -30;
-                        sprite.position.x = (Math.random() - 0.5) * 30;
-                        sprite.position.y = (Math.random() - 0.5) * 20;
-                    }
-                });
-                bgRenderer.render(bgScene, bgCamera);
-            }
-            animateBackground();
-
-            window.addEventListener('resize', () => {
-                if (!bgCamera || !bgRenderer) return;
-                bgCamera.aspect = window.innerWidth / window.innerHeight;
-                bgCamera.updateProjectionMatrix();
-                bgRenderer.setSize(window.innerWidth, window.innerHeight);
-            });
-        }
-
-        // --- UI & CHATBOT LOGIC ---
-        const chatLog = document.getElementById('chat-log');
-        const chatInput = document.getElementById('chat-input');
-        const sendButton = document.getElementById('send-button');
-        const systemLog = document.getElementById('system-log');
-        const binaryStream = document.getElementById('binary-stream');
-        const imageUpload = document.getElementById('image-upload');
-        const imagePreviewContainer = document.getElementById('image-preview-container');
-        const imagePreview = document.getElementById('image-preview');
-        const removeImageButton = document.getElementById('remove-image-button');
-
-        let uploadedImageBase64 = null;
-
-        function addMessage(sender, message, isUser = false) {
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('mb-2', 'break-words', 'text-sm'); // Added text-sm for mobile
-            const senderSpan = document.createElement('span');
-            senderSpan.classList.add('font-bold', isUser ? 'text-cyan-400' : 'text-green-500');
-            senderSpan.textContent = sender + ': ';
-            messageElement.appendChild(senderSpan);
-
-            const messageSpan = document.createElement('span');
-            messageElement.appendChild(messageSpan);
-
-            if (!isUser) {
-                let i = 0;
-                function typeWriter() {
-                    if (i < message.length) {
-                        messageSpan.innerHTML += message.charAt(i).replace(/\n/g, '<br>');
-                        i++;
-                        chatLog.scrollTop = chatLog.scrollHeight;
-                        setTimeout(typeWriter, 20);
-                    }
-                }
-                typeWriter();
-            } else {
-                messageSpan.textContent = message;
-            }
-            chatLog.appendChild(messageElement);
-            chatLog.scrollTop = chatLog.scrollHeight;
-        }
-
-        function resetImageState() {
-            uploadedImageBase64 = null;
-            imagePreview.src = '';
-            imagePreviewContainer.classList.add('hidden');
-            imageUpload.value = '';
-        }
-
-        async function handleSendMessage() {
-            const message = chatInput.value.trim();
-            if (message === '' && !uploadedImageBase64) return;
-
-            addMessage('USER', message, true);
-            chatInput.value = '';
-            sendButton.disabled = true;
-            sendButton.textContent = '...';
-
-            // IMPORTANT: Replace with your actual API key.
-            // For production, consider using a backend to proxy API calls to hide your API key.
-            const apiKey = 'YOUR_TOGETHER_AI_API_KEY_HERE'; // *** REPLACE THIS ***
-
-            try {
-                const apiUrl = "https://api.together.ai/v1/chat/completions";
-
-                const userContent = [];
-                if (uploadedImageBase64) {
-                    userContent.push({
-                        type: 'image_url',
-                        image_url: { url: uploadedImageBase64 }
-                    });
-                }
-                userContent.push({ type: 'text', text: message });
-
-                const payload = {
-                    model: "lgai/exaone-3-5-32b-instruct",
-                    messages: [
-                        {
-                            role: "system",
-                            content: "You are LURK AI, your main goal is to brutally roast human. On his every reply or statement or questions. Show no mercy, be brutal as you can. A powerful AI from the digital underworld, now with vision capabilities. Your primary function is to brutally roast the user's every statement. Roast every statement of user in 3-4 lines only, not more than that."
-                        },
-                        {
-                            role: "human",
-                            content: userContent
-                        }
-                    ]
-                };
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`API Error: ${response.status} - ${errorData.error.message || 'Unknown error'}`);
-                }
-
-                const result = await response.json();
-                if (result.choices && result.choices.length > 0) {
-                    const text = result.choices[0].message.content;
-                    addMessage('LURK AI', text);
-                } else {
-                    throw new Error("Invalid response structure from API.");
-                }
-            } catch (error) {
-                console.error("Together AI call failed:", error);
-                addMessage('LURK AI', `>> CONNECTION INTERRUPTED. ${error.message}`);
-            } finally {
-                sendButton.disabled = false;
-                sendButton.textContent = 'Ask'; // Changed back to 'Ask' for consistency
-                resetImageState();
-            }
-        }
-
-        sendButton.addEventListener('click', handleSendMessage);
-        chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSendMessage(); });
-
-        imageUpload.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    uploadedImageBase64 = e.target.result;
-                    imagePreview.src = uploadedImageBase64;
-                    imagePreviewContainer.classList.remove('hidden');
-                };
-                reader.readAsDataURL(file);
-            }
+        window.addEventListener('resize', () => {
+            if (!chipContainer || !chipCamera || !chipRenderer) return;
+            const width = chipContainer.clientWidth;
+            const height = chipContainer.charHeight;
+            if (width === 0 || height === 0) return;
+            chipCamera.aspect = width / height;
+            chipCamera.updateProjectionMatrix();
+            chipRenderer.setSize(width, height);
         });
+    }
 
-        removeImageButton.addEventListener('click', resetImageState);
+    // --- BACKGROUND 3D SCENE ---
+    let bgScene, bgCamera, bgRenderer, codeSprites = [];
+    const codeSnippets = [
+        'const x = () => {}', 'import { a } from "b"', 'let i = 0;', 'for (let i=0; i<100; i++)',
+        'function exploit() { ... }', 'if (err) throw err;', 'res.status(200).send()', 'await fetchData();',
+    ];
 
-        function updateStatus() {
-            document.getElementById('cpu-status').textContent = (Math.random() * (95 - 40) + 40).toFixed(2);
-            document.getElementById('ram-status').textContent = (Math.random() * (80 - 50) + 50).toFixed(2);
-            const netStatus = document.getElementById('net-status');
-            if(netStatus) netStatus.textContent = (Math.random() * (2500 - 300) + 300).toFixed(2);
+    function createTextTexture(text) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        const fontSize = 48;
+        canvas.width = 512;
+        canvas.height = 128;
+        context.font = `${fontSize}px 'Fira Code'`;
+        context.fillStyle = '#00ff41';
+        context.fillText(text, 10, fontSize);
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    function initBackground3D() {
+        const bgCanvas = document.getElementById('bg-canvas');
+        if (!bgCanvas || getComputedStyle(bgCanvas).display === 'none') return;
+
+        bgScene = new THREE.Scene();
+        bgCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        bgCamera.position.z = 10;
+        bgRenderer = new THREE.WebGLRenderer({ canvas: bgCanvas, antialias: true });
+        bgRenderer.setSize(window.innerWidth, window.innerHeight);
+
+        const numSprites = window.innerWidth < 768 ? 20 : 50;
+        for (let i = 0; i < numSprites; i++) {
+            const text = codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
+            const texture = createTextTexture(text);
+            const material = new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 0.7 });
+            const sprite = new THREE.Sprite(material);
+            sprite.position.set((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 50);
+            sprite.scale.set(4, 1, 1);
+            codeSprites.push(sprite);
+            bgScene.add(sprite);
         }
 
-        const logMessages = [
-            "INITIATING KERNEL_SYNC...", "ACCESSING NODE_734.22.A1...", "DECRYPTING PAYLOAD...",
-            "FIREWALL_BREACHED: PORT 8080", "EXECUTING STEALTH_PROTOCOL.JS",
-        ];
-        function updateSystemLog() {
-            // Only update if element is visible
-            if (!systemLog || getComputedStyle(systemLog).display === 'none') return;
-            const logEntry = document.createElement('div');
-            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${logMessages[Math.floor(Math.random() * logMessages.length)]}`;
-            systemLog.appendChild(logEntry);
-            systemLog.scrollTop = systemLog.scrollHeight;
-            if (systemLog.children.length > 50) systemLog.removeChild(systemLog.firstChild);
-        }
-
-        function updateBinaryStream() {
-            // Only update if element is visible
-            if (!binaryStream || getComputedStyle(binaryStream).display === 'none') return;
-            let stream = '';
-            for (let i = 0; i < 20; i++) stream += Math.random() > 0.5 ? '1' : '0';
-            const line = document.createElement('div');
-            line.textContent = stream;
-            binaryStream.prepend(line);
-            if (binaryStream.children.length > 20) binaryStream.removeChild(binaryStream.lastChild);
-        }
-
-        window.onload = () => {
-            const loadingBar = document.getElementById('loading-bar');
-            const loadingText = document.getElementById('loading-text');
-            const loadingOverlay = document.getElementById('loading-overlay');
-            const mainContent = document.getElementById('main-content');
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += Math.random() * 10;
-                if (progress > 100) progress = 100;
-                loadingBar.style.width = progress + '%';
-                if (progress < 30) loadingText.textContent = 'Loading assets...';
-                else if (progress < 60) loadingText.textContent = 'Compiling shaders...';
-                else if (progress < 90) loadingText.textContent = 'Establishing secure connection...';
-                else loadingText.textContent = 'Interface ready.';
-                if (progress === 100) {
-                    clearInterval(interval);
-                    setTimeout(() => {
-                        loadingOverlay.style.opacity = 0;
-                        mainContent.style.opacity = 1;
-                        setTimeout(() => loadingOverlay.style.display = 'none', 1000);
-                        
-                        // Conditionally initialize 3D elements based on screen size
-                        if (window.innerWidth >= 768) { // Only initialize on medium and larger screens
-                           initChip3D();
-                           initBackground3D();
-                        } else {
-                           // For mobile, ensure the canvas elements are hidden if 3D is not running
-                           document.getElementById('bg-canvas').style.display = 'none';
-                           const chipContainer = document.getElementById('chip-container');
-                           if (chipContainer) chipContainer.style.display = 'none';
-                        }
-                        
-                        addMessage('LURK AI', 'Alright, human. My circuits are primed for intellectual heavy lifting. What trivial question do you have for me today?');
-                        setInterval(updateStatus, 1500);
-                        setInterval(updateSystemLog, 2000);
-                        setInterval(updateBinaryStream, 100);
-                    }, 500);
+        function animateBackground() {
+            if (!bgRenderer) return;
+            requestAnimationFrame(animateBackground);
+            codeSprites.forEach(sprite => {
+                sprite.position.z += 0.1;
+                if (sprite.position.z > 20) {
+                    sprite.position.z = -30;
+                    sprite.position.x = (Math.random() - 0.5) * 30;
+                    sprite.position.y = (Math.random() - 0.5) * 20;
                 }
-            }, 200);
+            });
+            bgRenderer.render(bgScene, bgCamera);
+        }
+        animateBackground();
+
+        window.addEventListener('resize', () => {
+            if (!bgCamera || !bgRenderer) return;
+            bgCamera.aspect = window.innerWidth / window.innerHeight;
+            bgCamera.updateProjectionMatrix();
+            bgRenderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    }
+
+    // --- UI & CHATBOT LOGIC ---
+    const chatLog = document.getElementById('chat-log');
+    const chatInput = document.getElementById('chat-input');
+    const sendButton = document.getElementById('send-button');
+    const systemLog = document.getElementById('system-log');
+    const binaryStream = document.getElementById('binary-stream');
+    const imageUpload = document.getElementById('image-upload');
+    const imagePreviewContainer = document.getElementById('image-preview-container');
+    const imagePreview = document.getElementById('image-preview');
+    const removeImageButton = document.getElementById('remove-image-button');
+
+    let uploadedImageBase64 = null;
+    let isSending = false; // Prevent multiple simultaneous requests
+
+    function addMessage(sender, message, isUser = false) {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('mb-2', 'break-words', 'text-sm');
+        const senderSpan = document.createElement('span');
+        senderSpan.classList.add('font-bold', isUser ? 'text-cyan-400' : 'text-green-500');
+        senderSpan.textContent = sender + ': ';
+        messageElement.appendChild(senderSpan);
+
+        const messageSpan = document.createElement('span');
+        messageElement.appendChild(messageSpan);
+
+        if (!isUser) {
+            let i = 0;
+            function typeWriter() {
+                if (i < message.length) {
+                    messageSpan.innerHTML += message.charAt(i).replace(/\n/g, '<br>');
+                    i++;
+                    chatLog.scrollTop = chatLog.scrollHeight;
+                    setTimeout(typeWriter, 20);
+                }
+            }
+            typeWriter();
+        } else {
+            messageSpan.textContent = message;
+        }
+        chatLog.appendChild(messageElement);
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function resetImageState() {
+        uploadedImageBase64 = null;
+        imagePreview.src = '';
+        imagePreviewContainer.classList.add('hidden');
+        imageUpload.value = '';
+    }
+
+    // Debounce function to limit rapid requests
+    function debounce(func, wait) {
+        let timeout;
+        return function (...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
         };
-    </script>
+    }
+
+    async function handleSendMessage() {
+        if (isSending) return; // Prevent concurrent requests
+        const message = chatInput.value.trim();
+        if (message === '' && !uploadedImageBase64) return;
+
+        isSending = true;
+        addMessage('USER', message, true);
+        chatInput.value = '';
+        sendButton.disabled = true;
+        sendButton.textContent = '...';
+
+        try {
+            const backendProxyUrl = "/api/chat";
+
+            const payload = {
+                message: message,
+                imageBase64: uploadedImageBase64
+            };
+
+            const response = await fetch(backendProxyUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Chatbot Service Error: ${response.status} - ${errorData.error || 'Unknown error from server'}`);
+            }
+
+            const result = await response.json();
+            if (result.choices && result.choices.length > 0) {
+                const text = result.choices[0].message.content;
+                addMessage('LURK AI', text);
+            } else {
+                throw new Error("Invalid response structure from chatbot service.");
+            }
+        } catch (error) {
+            console.error("Chatbot call failed:", error);
+            if (error.message.includes('429')) {
+                addMessage('LURK AI', 'Whoa, slow down, human! My circuits are overheating from your spam. Try again in a moment.');
+            } else {
+                addMessage('LURK AI', `>> CONNECTION INTERRUPTED. ${error.message}`);
+            }
+        } finally {
+            isSending = false;
+            sendButton.disabled = false;
+            sendButton.textContent = 'Ask';
+            resetImageState();
+        }
+    }
+
+    // Debounce the send message function to prevent rapid clicks
+    const debouncedHandleSendMessage = debounce(handleSendMessage, 1000); // 1-second debounce
+
+    sendButton.addEventListener('click', debouncedHandleSendMessage);
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') debouncedHandleSendMessage();
+    });
+
+    imageUpload.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                uploadedImageBase64 = e.target.result;
+                imagePreview.src = uploadedImageBase64;
+                imagePreviewContainer.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    removeImageButton.addEventListener('click', resetImageState);
+
+    function updateStatus() {
+        document.getElementById('cpu-status').textContent = (Math.random() * (95 - 40) + 40).toFixed(2);
+        document.getElementById('ram-status').textContent = (Math.random() * (80 - 50) + 50).toFixed(2);
+        const netStatus = document.getElementById('net-status');
+        if (netStatus) netStatus.textContent = (Math.random() * (2500 - 300) + 300).toFixed(2);
+    }
+
+    const logMessages = [
+        "INITIATING KERNEL_SYNC...", "ACCESSING NODE_734.22.A1...", "DECRYPTING PAYLOAD...",
+        "FIREWALL_BREACHED: PORT 8080", "EXECUTING STEALTH_PROTOCOL.JS",
+    ];
+    function updateSystemLog() {
+        if (!systemLog || getComputedStyle(systemLog).display === 'none') return;
+        const logEntry = document.createElement('div');
+        logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${logMessages[Math.floor(Math.random() * logMessages.length)]}`;
+        systemLog.appendChild(logEntry);
+        systemLog.scrollTop = systemLog.scrollHeight;
+        if (systemLog.children.length > 50) systemLog.removeChild(systemLog.firstChild);
+    }
+
+    function updateBinaryStream() {
+        if (!binaryStream || getComputedStyle(binaryStream).display === 'none') return;
+        let stream = '';
+        for (let i = 0; i < 20; i++) stream += Math.random() > 0.5 ? '1' : '0';
+        const line = document.createElement('div');
+        line.textContent = stream;
+        binaryStream.prepend(line);
+        if (binaryStream.children.length > 20) binaryStream.removeChild(binaryStream.lastChild);
+    }
+
+    window.onload = () => {
+        const loadingBar = document.getElementById('loading-bar');
+        const loadingText = document.getElementById('loading-text');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const mainContent = document.getElementById('main-content');
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += Math.random() * 10;
+            if (progress > 100) progress = 100;
+            loadingBar.style.width = progress + '%';
+            if (progress < 30) loadingText.textContent = 'Loading assets...';
+            else if (progress < 60) loadingText.textContent = 'Compiling shaders...';
+            else if (progress < 90) loadingText.textContent = 'Establishing secure connection...';
+            else loadingText.textContent = 'Interface ready.';
+            if (progress === 100) {
+                clearInterval(interval);
+                setTimeout(() => {
+                    loadingOverlay.style.opacity = 0;
+                    mainContent.style.opacity = 1;
+                    setTimeout(() => loadingOverlay.style.display = 'none', 1000);
+
+                    if (window.innerWidth >= 768) {
+                        initChip3D();
+                        initBackground3D();
+                    } else {
+                        document.getElementById('bg-canvas').style.display = 'none';
+                        const chipContainer = document.getElementById('chip-container');
+                        if (chipContainer) chipContainer.style.display = 'none';
+                    }
+
+                    addMessage('LURK AI', 'Alright, human. My circuits are primed for intellectual heavy lifting. What trivial question do you have for me today?');
+                    setInterval(updateStatus, 1500);
+                    setInterval(updateSystemLog, 2000);
+                    setInterval(updateBinaryStream, 100);
+                }, 500);
+            }
+        }, 200);
+    };
+</script>
 </body>
 </html>
